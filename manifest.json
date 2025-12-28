@@ -1,7 +1,7 @@
 {
   "short_name": "Sonne und Mond",
   "name": "Sonne und Mond",
-  "description": Saonnenaufgang Mond und Planeten",
+  "description": "Sonnenaufgang Mond und Planeten",
   "start_url": "index.html",
   "display": "standalone",
   "orientation": "portrait",
