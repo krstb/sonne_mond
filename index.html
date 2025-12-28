@@ -149,8 +149,8 @@
                              </div>
                     </div>
                  </div>
+                 </div>
             </div>
-        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/suncalc@1.8.0/suncalc.js"></script>
@@ -161,6 +161,7 @@
         
         // --- KONSTANTEN UND HILFSFUNKTIONEN ---
 
+        // Mondphasen-Definitionen
         const moonPhases = [
             {emoji: '🌑', name: 'Neumond'}, {emoji: '🌒', name: 'Zunehmende Sichel'},
             {emoji: '🌓', name: 'Erstes Viertel'}, {emoji: '🌔', name: 'Zunehmender Mond'},
@@ -168,41 +169,52 @@
             {emoji: '🌗', name: 'Letztes Viertel'}, {emoji: '🌘', name: 'Abnehmende Sichel'}
         ];
 
+        // Vereinfachte Planeten-Daten
         const planets = [
-            { id: 'venus', name: 'Venus', emoji: '♀️', color: '#fca5a5' },
-            { id: 'mars', name: 'Mars', emoji: '♂️', color: '#f87171' },
-            { id: 'jupiter', name: 'Jupiter', emoji: '♃', color: '#fbbf24' }
+            { id: 'venus', name: 'Venus', emoji: '♀️', color: '#fca5a5' }, // rose-300
+            { id: 'mars', name: 'Mars', emoji: '♂️', color: '#f87171' }, // red-400
+            { id: 'jupiter', name: 'Jupiter', emoji: '♃', color: '#fbbf24' } // amber-400
         ];
         
         let liveUpdateInterval = null;
         let dailySunTimes = null;
         let selectedDateForLiveUpdates = null;
 
+        // HILFSFUNKTION: Konvertiert Dezimalgrad in Grad und Minuten (D° M')
         function formatDegreesMinutes(degrees) {
             const isNegative = degrees < 0;
             const absDegrees = Math.abs(degrees);
+
             const deg = Math.floor(absDegrees);
             const minutesDecimal = (absDegrees - deg) * 60;
             const min = Math.round(minutesDecimal);
-            if (min === 60) return `${isNegative ? '-' : ''}${deg + 1}° 0'`;
+
+            if (min === 60) {
+                return `${isNegative ? '-' : ''}${deg + 1}° 0'`;
+            }
+
             return `${isNegative ? '-' : ''}${deg}° ${min}'`;
         }
         
+        // Hilfsfunktion zur Formatierung der Uhrzeit
         const formatTime = (date) => {
             if (!date || isNaN(date.getTime())) return '---';
             return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
         };
         
+        // Hilfsfunktion zur Umrechnung von Grad in Kompass-Richtung
         function degreesToCompass(deg) {
             const val = Math.floor((deg / 22.5) + 0.5);
             const arr = ["N", "NNO", "NO", "ONO", "O", "OSO", "SO", "SSO", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
             return arr[(val % 16)];
         }
         
+        // Hilfsfunktion zur Ermittlung des nächsten Vollmonds
         function findNextFullMoon(startDate) {
             let searchDate = new Date(startDate);
             let maxIllumination = 0;
             let fullMoonDate = null;
+            
             for (let i = 0; i < 30; i++) {
                 const illumination = SunCalc.getMoonIllumination(searchDate);
                 if (illumination.fraction > maxIllumination) {
@@ -214,20 +226,28 @@
             return fullMoonDate;
         }
 
+        // NEUE FUNKTION: Generiert eine vereinfachte, datumabhängige Planetenposition
         function getPlanetPositionSimplified(planetId, date) {
+            // Vereinfachte Positionsberechnung nur für UI-Demonstration
             const jd = date.getTime() / 86400000 + 2440587.5; 
             const factor = { 'venus': 1.2, 'mars': 0.8, 'jupiter': 0.3 }[planetId] || 1;
+            
             let azimuth = (Math.sin(jd * 0.005 * factor) * 180 + 180 + jd * 0.001 * factor * 5) % 360;
             if (azimuth < 0) azimuth += 360;
+            
             let altitude = Math.sin(jd * 0.003 * factor * 2) * 50 + 20;
             altitude = Math.min(90, Math.max(-90, altitude));
+
             return { azimuth, altitude };
         }
 
+        // NEUE FUNKTION: Rendert die Planetenansicht
         function renderPlanetView(date) {
             const container = document.getElementById('planet-data-container');
             if (!container) return;
+
             let htmlContent = '';
+            // Wenn der ausgewählte Tag HEUTE ist, verwenden wir die aktuelle Zeit für die Positionen.
             const dateForPosition = selectedDateForLiveUpdates && selectedDateForLiveUpdates.toDateString() === new Date().toDateString() ? new Date() : date;
             
             planets.forEach(planet => {
@@ -235,20 +255,27 @@
                 const formattedAzimuth = formatDegreesMinutes(pos.azimuth);
                 const formattedAltitude = formatDegreesMinutes(pos.altitude);
                 const compassDir = degreesToCompass(pos.azimuth);
+                
+                // Visualisierungsposition für die Grafik (0-90 Grad)
                 const clampedAltitude = Math.max(0, Math.min(90, pos.altitude));
                 const percentage = clampedAltitude / 90;
+                
+                // Positionierung: Verwende 100% und transform: translateX(-50%)
                 const leftPosition = `${percentage * 100}%`;
                 const opacity = pos.altitude < 0 ? '0.3' : '1';
 
                 htmlContent += `
                     <div class="bg-slate-700 p-4 rounded-xl shadow-inner space-y-2">
                         <div class="flex items-center justify-between">
-                            <span class="text-xl font-semibold flex items-center">${planet.name}</span>
-                        </div>
+                            <span class="text-xl font-semibold flex items-center">
+                                ${planet.name}
+                            </span>
+                            </div>
                         <div class="text-left space-y-1 bg-slate-800 p-3 rounded-lg detail-text">
                             <p><strong>Richtung:</strong> <span class="text-gray-200">${compassDir} (${formattedAzimuth})</span></p>
                             <p><strong>Höhe:</strong> <span class="text-gray-200">${formattedAltitude}</span></p>
                         </div>
+                        
                         <div class="pt-2">
                             <div class="h-8 bg-slate-600 rounded-full relative overflow-hidden px-2">
                                 <div class="absolute w-4 h-4 rounded-full shadow-lg" 
@@ -259,34 +286,59 @@
                     </div>
                 `;
             });
+            
             container.innerHTML = htmlContent;
         }
 
+        // Aktualisiert die Höhengrafik für Sonne/Mond
         function updateAltitudeGraphic(markerId, altitudeDegrees) {
             const marker = document.getElementById(markerId);
             if (!marker) return;
+
+            // Visualisiert Höhe von 0° (Horizont) bis 90° (Zenit).
             const clampedAltitude = Math.max(0, Math.min(90, altitudeDegrees));
             const percentage = clampedAltitude / 90;
-            marker.style.left = `${percentage * 100}%`;
-            marker.style.transform = 'translateX(-50%)';
-            marker.style.opacity = altitudeDegrees < 0 ? '0.3' : '1';
+            
+            // Marker wird auf den prozentualen Wert gesetzt und horizontal zentriert
+            const leftPosition = `${percentage * 100}%`; 
+            
+            marker.style.left = leftPosition;
+            marker.style.transform = 'translateX(-50%)'; // Horizontal zentrieren
+
+            // Transparenz verringern, wenn die Position unter dem Horizont liegt.
+            if (altitudeDegrees < 0) {
+                marker.style.opacity = '0.3';
+            } else {
+                marker.style.opacity = '1';
+            }
         }
 
+        // Aktualisiert die Live-Positionen von Sonne und Mond (und Planeten)
         function updateLivePositions(view) {
             const now = new Date();
+
             if (view === 'sun') {
                 const sunPos = SunCalc.getPosition(now, LATITUDE, LONGITUDE);
                 const sunAzimuthDegrees = sunPos.azimuth * 180 / Math.PI + 180;
                 const sunAltitudeDegrees = sunPos.altitude * 180 / Math.PI;
-                document.getElementById('sun-azimuth').textContent = `${degreesToCompass(sunAzimuthDegrees)} (${formatDegreesMinutes(sunAzimuthDegrees)})`;
-                document.getElementById('sun-altitude').textContent = formatDegreesMinutes(sunAltitudeDegrees);
+
+                const formattedSunAzimuth = formatDegreesMinutes(sunAzimuthDegrees);
+                const formattedSunAltitude = formatDegreesMinutes(sunAltitudeDegrees);
+
+                document.getElementById('sun-azimuth').textContent = `${degreesToCompass(sunAzimuthDegrees)} (${formattedSunAzimuth})`;
+                document.getElementById('sun-altitude').textContent = formattedSunAltitude;
                 updateAltitudeGraphic('sun-altitude-marker', sunAltitudeDegrees);
+                
             } else if (view === 'moon') {
                 const moonPos = SunCalc.getMoonPosition(now, LATITUDE, LONGITUDE);
                 const moonAzimuthDegrees = moonPos.azimuth * 180 / Math.PI + 180;
                 const moonAltitudeDegrees = moonPos.altitude * 180 / Math.PI;
-                document.getElementById('moon-azimuth').textContent = `${degreesToCompass(moonAzimuthDegrees)} (${formatDegreesMinutes(moonAzimuthDegrees)})`;
-                document.getElementById('moon-altitude').textContent = formatDegreesMinutes(moonAltitudeDegrees);
+
+                const formattedMoonAzimuth = formatDegreesMinutes(moonAzimuthDegrees);
+                const formattedMoonAltitude = formatDegreesMinutes(moonAltitudeDegrees);
+
+                document.getElementById('moon-azimuth').textContent = `${degreesToCompass(moonAzimuthDegrees)} (${formattedMoonAzimuth})`;
+                document.getElementById('moon-altitude').textContent = formattedMoonAltitude;
                 document.getElementById('moon-distance').textContent = `${Math.round(moonPos.distance).toLocaleString('de-DE')} km`;
                 updateAltitudeGraphic('moon-altitude-marker', moonAltitudeDegrees);
             } else if (view === 'planet') {
@@ -294,6 +346,7 @@
             }
         }
 
+        // Hauptfunktion zum Abrufen und Aktualisieren aller statischen Daten
         function updateAllData(date) {
             const sunTimes = SunCalc.getTimes(date, LATITUDE, LONGITUDE);
             const moonTimes = SunCalc.getMoonTimes(date, LATITUDE, LONGITUDE);
@@ -301,91 +354,163 @@
             const nextFullMoon = findNextFullMoon(date);
             
             dailySunTimes = sunTimes;
+            // WICHTIG: Das ausgewählte Datum hier setzen, damit switchView und Live-Updates es kennen
             selectedDateForLiveUpdates = date; 
 
+            // Sonnendaten
             document.getElementById('sunrise-time').textContent = formatTime(sunTimes.sunrise);
             document.getElementById('sunset-time').textContent = formatTime(sunTimes.sunset);
             document.getElementById('solar-noon-time').textContent = formatTime(sunTimes.solarNoon);
             
+            // Monddaten
             const phaseIndex = Math.floor(moonIllumination.phase * 8 + 0.5) % 8;
             document.getElementById('moon-phase-emoji').textContent = moonPhases[phaseIndex].emoji;
             document.getElementById('moon-phase-text').textContent = moonPhases[phaseIndex].name;
+            
             document.getElementById('moonrise-time').textContent = formatTime(moonTimes.rise);
             document.getElementById('moonset-time').textContent = formatTime(moonTimes.set);
-            document.getElementById('next-full-moon-date').textContent = nextFullMoon ? nextFullMoon.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '---';
+
+            const fullMoonOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('next-full-moon-date').textContent = nextFullMoon ? nextFullMoon.toLocaleDateString('de-DE', fullMoonOptions) : '---';
             
+            // Planeten (Statische Anzeige für vergangene/zukünftige Daten)
             renderPlanetView(date);
-            if (date.toDateString() !== new Date().toDateString()) updateBackground(date, sunTimes);
+            
+            // updateBackground wird NUR hier aufgerufen, wenn es NICHT heute ist.
+            const today = new Date();
+            const isToday = date.toDateString() === today.toDateString();
+            if (!isToday) {
+                 updateBackground(date, sunTimes);
+            }
         }
 
+        // Aktualisiert den Hintergrund basierend auf der Tageszeit
+        // **KORREKTUR:** Simuliert die Zeit am ausgewählten Tag
         function updateBackground(date, sunTimes) {
             const body = document.body;
             if (!sunTimes) return; 
+            
             const today = new Date();
             const isToday = date.toDateString() === today.toDateString();
-            let timeToCompare = isToday ? today : new Date(date.setHours(today.getHours(), today.getMinutes(), today.getSeconds()));
+            
+            let timeToCompare;
 
-            if (timeToCompare > sunTimes.sunrise && timeToCompare < sunTimes.sunset) {
-                body.style.background = 'linear-gradient(145deg, #5DADE2 0%, #2E86C1 100%)';
-            } else if (timeToCompare >= sunTimes.dusk || timeToCompare <= sunTimes.dawn) {
-                body.style.background = 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)';
+            if (isToday) {
+                // Wenn heute: Nimm die aktuelle Uhrzeit
+                timeToCompare = today;
             } else {
-                body.style.background = 'linear-gradient(145deg, #f39c12 0%, #d35400 100%)';
+                // Wenn Vergangenheit/Zukunft: Simuliere die heutige Uhrzeit am gewählten Datum
+                timeToCompare = new Date(date);
+                timeToCompare.setHours(today.getHours());
+                timeToCompare.setMinutes(today.getMinutes());
+                timeToCompare.setSeconds(today.getSeconds());
+            }
+
+            // Vereinfachte Himmelszustände
+            if (timeToCompare > sunTimes.sunrise && timeToCompare < sunTimes.sunset) {
+                body.style.background = 'linear-gradient(145deg, #5DADE2 0%, #2E86C1 100%)'; // Tag (Blau)
+            } else if (timeToCompare >= sunTimes.dusk || timeToCompare <= sunTimes.dawn) {
+                body.style.background = 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)'; // Nacht (Dunkel)
+            } else {
+                body.style.background = 'linear-gradient(145deg, #f39c12 0%, #d35400 100%)'; // Dämmerung (Orange)
             }
         }
 
+        // Schaltet Live-Updates für Positionen ein/aus
         function toggleLiveUpdates(show) {
             if (show) {
                 if (!liveUpdateInterval) {
-                    liveUpdateInterval = setInterval(() => {
+                    const liveUpdateLoop = () => {
                         updateLivePositions(currentView); 
-                        if(selectedDateForLiveUpdates?.toDateString() === new Date().toDateString()) updateBackground(selectedDateForLiveUpdates, dailySunTimes); 
-                    }, 2000);
+                        const isToday = selectedDateForLiveUpdates && selectedDateForLiveUpdates.toDateString() === new Date().toDateString();
+                        if(isToday) {
+                            // Wenn heute, aktualisiert der Loop den Hintergrund
+                            updateBackground(selectedDateForLiveUpdates, dailySunTimes); 
+                        }
+                    };
+                    liveUpdateInterval = setInterval(liveUpdateLoop, 2000);
                 }
-            } else if (liveUpdateInterval) {
-                clearInterval(liveUpdateInterval);
-                liveUpdateInterval = null;
+            } else {
+                if (liveUpdateInterval) {
+                    clearInterval(liveUpdateInterval);
+                    liveUpdateInterval = null;
+                }
             }
         }
 
+        // Initialisierung beim Laden der Seite
         window.onload = function() {
             const datePicker = document.getElementById('date-picker');
-            const sunView = document.getElementById('sun-view'), moonView = document.getElementById('moon-view'), planetView = document.getElementById('planet-view');
+            const today = new Date();
+            
+            const sunView = document.getElementById('sun-view');
+            const moonView = document.getElementById('moon-view');
+            const planetView = document.getElementById('planet-view');
             const tabs = document.querySelectorAll('[data-view]');
 
             function switchView(viewToShow) {
+                // Container-Sichtbarkeit
                 sunView.classList.toggle('hidden', viewToShow !== 'sun');
                 moonView.classList.toggle('hidden', viewToShow !== 'moon');
                 planetView.classList.toggle('hidden', viewToShow !== 'planet');
+                
+                // Tab-Styling
                 tabs.forEach(tab => {
                     const isActive = tab.getAttribute('data-view') === viewToShow;
                     tab.classList.toggle('tab-active', isActive);
                     tab.classList.toggle('tab-inactive', !isActive);
                 });
+                
                 currentView = viewToShow;
-                if (selectedDateForLiveUpdates?.toDateString() === new Date().toDateString()) updateLivePositions(currentView); 
-                else updateAllData(selectedDateForLiveUpdates); 
+                
+                // Positionen sofort aktualisieren (Live-Daten, wenn Datum heute)
+                const isToday = selectedDateForLiveUpdates && selectedDateForLiveUpdates.toDateString() === new Date().toDateString();
+                if (isToday) {
+                    updateLivePositions(currentView); 
+                } else {
+                    // Statische Daten neu rendern, wenn Datum nicht heute
+                    updateAllData(selectedDateForLiveUpdates); 
+                }
             }
 
-            tabs.forEach(tab => tab.addEventListener('click', () => switchView(tab.getAttribute('data-view'))));
-            datePicker.value = new Date().toISOString().split('T')[0];
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => switchView(tab.getAttribute('data-view')));
+            });
+
+            const todayString = today.toISOString().split('T')[0];
+            datePicker.value = todayString;
             
-            datePicker.addEventListener('change', (e) => {
-                const selectedDate = new Date(e.target.value + 'T12:00:00');
+            // **KORRIGIERT:** Datumswähler Event-Listener
+            datePicker.addEventListener('change', (event) => {
+                // Wir stellen die Zeit auf 12:00:00 Uhr, um Zeitzonenfehler beim Datum zu vermeiden
+                const selectedDate = new Date(event.target.value + 'T12:00:00');
+                
+                // 1. Alle Daten aktualisieren (setzt dailySunTimes und selectedDateForLiveUpdates)
                 updateAllData(selectedDate);
+                
+                const isToday = selectedDate.toDateString() === today.toDateString();
+                
+                // **KORREKTUR:** Hintergrund JEDES MAL sofort aktualisieren. 
+                // Dies verwendet die NEUE Logik in updateBackground.
                 updateBackground(selectedDate, dailySunTimes); 
-                toggleLiveUpdates(selectedDate.toDateString() === new Date().toDateString());
+                
+                toggleLiveUpdates(isToday);
+                
+                // 3. Ansicht nach Datumsänderung aktualisieren (ruft updateLivePositions auf, wenn nötig)
                 switchView(currentView); 
             });
             
-            updateAllData(new Date());
-            updateBackground(new Date(), dailySunTimes);
+            // Initialisierung beim ersten Laden
+            updateAllData(today);
+            updateBackground(today, dailySunTimes); // Hintergrundfarbe einmal sofort setzen
             switchView('sun');
             toggleLiveUpdates(true);
 
-            // Service Worker Registration
+            // Service Worker Registrierung
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js').catch(() => { /* Fehler unterdrückt */ });
+                navigator.serviceWorker.register('sw.js').catch(function(err) {
+                    /* Fehler unterdrückt */
+                });
             }
         };
     </script>
