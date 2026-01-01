@@ -242,6 +242,24 @@
             });
         }
 
+        // Live-Uhrzeit Aktualisierung
+        function tick() {
+            const now = new Date();
+            const dateInput = document.getElementById('date-picker');
+            const timeInput = document.getElementById('time-picker');
+            
+            const todayStr = now.toISOString().split('T')[0];
+            const currentTimeStr = now.toTimeString().slice(0,5);
+
+            // Nur aktualisieren, wenn das Datum auf heute steht
+            if (dateInput.value === todayStr) {
+                if (timeInput.value !== currentTimeStr) {
+                    timeInput.value = currentTimeStr;
+                    update();
+                }
+            }
+        }
+
         document.getElementById('date-picker').addEventListener('change', update);
         document.getElementById('time-picker').addEventListener('change', update);
         document.querySelectorAll('[data-view]').forEach(t => t.addEventListener('click', e => {
@@ -255,6 +273,10 @@
         document.getElementById('date-picker').value = now.toISOString().split('T')[0];
         document.getElementById('time-picker').value = now.toTimeString().slice(0,5);
         update();
+
+        // Startet den Timer für die Live-Aktualisierung
+        setInterval(tick, 1000);
     </script>
 </body>
 </html>
+
