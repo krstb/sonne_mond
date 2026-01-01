@@ -131,6 +131,8 @@
     <script>
         const LAT = 48.363, LON = 10.83898;
         let currentView = 'sun';
+        let isUserEditing = false;
+        let autoUpdateActive = true;
 
         function getCompass(deg) {
             const s = ["N", "NNO", "NO", "ONO", "O", "OSO", "SO", "SSO", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
@@ -249,6 +251,8 @@
 
         // Live-Uhrzeit Aktualisierung
         function tick() {
+            if (isUserEditing || !autoUpdateActive) return;
+
             const now = new Date();
             const dateInput = document.getElementById('date-picker');
             const timeInput = document.getElementById('time-picker');
@@ -265,8 +269,22 @@
             }
         }
 
-        document.getElementById('date-picker').addEventListener('change', update);
-        document.getElementById('time-picker').addEventListener('change', update);
+        // Event Listener für manuelle Eingaben
+        const datePicker = document.getElementById('date-picker');
+        const timePicker = document.getElementById('time-picker');
+
+        [datePicker, timePicker].forEach(picker => {
+            picker.addEventListener('focus', () => { isUserEditing = true; });
+            picker.addEventListener('blur', () => { isUserEditing = false; });
+            picker.addEventListener('input', () => { 
+                autoUpdateActive = false; 
+                update();
+            });
+        });
+
+        datePicker.addEventListener('change', update);
+        timePicker.addEventListener('change', update);
+
         document.querySelectorAll('[data-view]').forEach(t => t.addEventListener('click', e => {
             currentView = e.target.dataset.view;
             updateTabStyles(currentView);
