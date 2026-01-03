@@ -59,7 +59,7 @@
 <body class="flex items-start justify-center min-h-screen p-4 pt-8 text-slate-200 font-sans">
 
     <div class="app-container p-6 max-w-sm w-full mx-auto text-center border border-slate-700">
-        <h1 class="text-xl font-black mb-6 text-white tracking-tight">Astronomische Ereignisse Stadtbergen2</h1> 
+        <h1 class="text-xl font-black mb-6 text-white tracking-tight">Astronomische Ereignisse Stadtbergen</h1> 
 
         <div class="flex space-x-2 mb-6">
             <input type="date" id="date-picker" class="p-2 rounded-xl text-xs w-1/2 outline-none text-white">
@@ -139,36 +139,56 @@
             return s[(Math.floor((deg / 22.5) + 0.5) % 16)];
         }
 
-                function getNextFullMoon(startDate) {
-    let d = new Date(startDate);
-    let checkDate = new Date(d);
-    
-    // Suche am Anfang des gewählten Tages starten
-    checkDate.setHours(0, 0, 0, 0);
-    
-    let lastFraction = SunCalc.getMoonIllumination(checkDate).fraction;
-    
-    // 35 Tage prüfen (840 Stunden)
-    for (let i = 0; i < 35 * 24; i++) {
-        checkDate.setHours(checkDate.getHours() + 1);
-        let currentFraction = SunCalc.getMoonIllumination(checkDate).fraction;
-        
-        // Prüfen auf Maximum (Vollmond)
-        if (currentFraction < lastFraction && lastFraction > 0.98) {
-            // Wenn dieser Peak HEUTE schon vorbei ist, ignorieren und weiter für nächsten Monat
-            if (checkDate <= d) {
-                lastFraction = currentFraction; // Wichtig: Wert für nächsten Vergleich merken
-                continue; 
+        function getNextFullMoon(startDate) {
+            let d = new Date(startDate);
+            let lastFraction = SunCalc.getMoonIllumination(d).fraction;
+            for (let i = 0; i < 31 * 24; i++) {
+                d.setHours(d.getHours() + 1);
+                let currentFraction = SunCalc.getMoonIllumination(d).fraction;
+                if (currentFraction < lastFraction && lastFraction > 0.98) {
+                    return d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+                }
+                lastFraction = currentFraction;
             }
-            // Ansonsten: Das ist unser nächster Termin
-            return checkDate.toLocaleDateString('de-DE') + ' ' + checkDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+            return "";
         }
-        lastFraction = currentFraction;
-    }
-    return "Kein Vollmond gefunden";
-}
 
+        function getPlanetRealPos(id, date) {
+            const d = (date.getTime() / 86400000) - (new Date('2000-01-01T12:00:00Z').getTime() / 86400000);
+            const rev = x => x - Math.floor(x / 360.0) * 360.0;
+            const rad = x => x * Math.PI / 180.0;
+            const deg = x => x * 180.0 / Math.PI;
 
+            const Ms = rev(356.047 + 0.9856002585 * d);
+            const Ls = rev(282.9404 + Ms);
+            const xs = Math.cos(rad(Ls)), ys = Math.sin(rad(Ls));
+
+            let p = id === 'venus'   ? {a:0.7233, e:0.0067, M:rev(48.005+1.60213*d), N:76.68, i:3.39, w:54.89} :
+                    id === 'mars'    ? {a:1.5236, e:0.0934, M:rev(18.602+0.5240*d), N:49.56, i:1.85, w:286.5} :
+                    id === 'jupiter' ? {a:5.2026, e:0.0485, M:rev(19.895+0.083085*d), N:100.45, i:1.303, w:273.87} :
+                                       {a:9.5547, e:0.0555, M:rev(316.967+0.03344*d), N:113.72, i:2.489, w:339.39};
+
+            const E = rad(p.M + deg(p.e * Math.sin(rad(p.M)) * (1 + p.e * Math.cos(rad(p.M)))));
+            const xv = p.a * (Math.cos(E) - p.e), yv = p.a * (Math.sqrt(1 - p.e*p.e) * Math.sin(E));
+            const r = Math.sqrt(xv*xv + yv*yv), lonP = rev(deg(Math.atan2(yv, xv)) + p.w);
+
+            const xh = r * (Math.cos(rad(p.N)) * Math.cos(rad(lonP)) - Math.sin(rad(p.N)) * Math.sin(rad(lonP)) * Math.cos(rad(p.i)));
+            const yh = r * (Math.sin(rad(p.N)) * Math.cos(rad(lonP)) + Math.cos(rad(p.N)) * Math.sin(rad(lonP)) * Math.cos(rad(p.i)));
+            const zh = r * (Math.sin(rad(lonP)) * Math.sin(rad(p.i)));
+
+            const xg = xh + xs, yg = yh + ys, zg = zh;
+            const ecl = rad(23.4393);
+            const xeq = xg, yeq = yg*Math.cos(ecl)-zg*Math.sin(ecl), zeq = yg*Math.sin(ecl)+zg*Math.cos(ecl);
+
+            const ra = rev(deg(Math.atan2(yeq, xeq))), dec = deg(Math.atan2(zeq, Math.sqrt(xeq*xeq + yeq*yeq)));
+            const GMST = rev(280.4606 + 360.9856473 * d);
+            const sidereal = rev(GMST + LON);
+            const ha = rad(rev(sidereal - ra));
+            
+            const alt = deg(Math.asin(Math.sin(rad(LAT)) * Math.sin(rad(dec)) + Math.cos(rad(LAT)) * Math.cos(rad(dec)) * Math.cos(ha)));
+            const az = rev(deg(Math.atan2(Math.sin(ha), Math.cos(ha) * Math.sin(rad(LAT)) - Math.tan(rad(dec)) * Math.cos(rad(LAT)))) + 180);
+            return { azimuth: az, altitude: alt };
+        }
 
         function update() {
             const dateVal = document.getElementById('date-picker').value;
