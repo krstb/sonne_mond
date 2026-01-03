@@ -25,7 +25,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Fix für PWA-Ränder */
-        html { background-color: #000000 !important; }
+        html { background-color: #100000 !important; }
 
         body { background-color: #131797; }
         .app-container { background: #1e293b; border-radius: 2rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
@@ -139,14 +139,28 @@
             return s[(Math.floor((deg / 22.5) + 0.5) % 16)];
         }
 
-        function getNextFullMoon(startDate) {
+                function getNextFullMoon(startDate) {
             let d = new Date(startDate);
-            let lastFraction = SunCalc.getMoonIllumination(d).fraction;
+            
+            // Wir prüfen zuerst, ob heute noch ein Vollmond kommt.
+            // Dazu starten wir die Suche am Anfang des aktuellen Tages.
+            let checkDate = new Date(d);
+            checkDate.setHours(0, 0, 0, 0);
+            
+            let lastFraction = SunCalc.getMoonIllumination(checkDate).fraction;
+            
             for (let i = 0; i < 31 * 24; i++) {
-                d.setHours(d.getHours() + 1);
-                let currentFraction = SunCalc.getMoonIllumination(d).fraction;
+                checkDate.setHours(checkDate.getHours() + 1);
+                let currentFraction = SunCalc.getMoonIllumination(checkDate).fraction;
+                
                 if (currentFraction < lastFraction && lastFraction > 0.98) {
-                    return d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+                    // Wenn dieser gefundene Vollmond zeitlich VOR der aktuellen Uhrzeit (d) liegt...
+                    if (checkDate < d) {
+                        // ...überspringen wir ihn und suchen ab morgen weiter,
+                        // damit das nächste Ereignis im Februar angezeigt wird.
+                        continue; 
+                    }
+                    return checkDate.toLocaleDateString('de-DE') + ' ' + checkDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
                 }
                 lastFraction = currentFraction;
             }
