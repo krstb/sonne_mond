@@ -59,7 +59,7 @@
 <body class="flex items-start justify-center min-h-screen p-4 pt-8 text-slate-200 font-sans">
 
     <div class="app-container p-6 max-w-sm w-full mx-auto text-center border border-slate-700">
-        <h1 class="text-xl font-black mb-6 text-white tracking-tight">Astronomische Ereignisse Stadtbergen5</h1> 
+        <h1 class="text-xl font-black mb-6 text-white tracking-tight">Astronomische Ereignisse Stadtbergen2</h1> 
 
         <div class="flex space-x-2 mb-6">
             <input type="date" id="date-picker" class="p-2 rounded-xl text-xs w-1/2 outline-none text-white">
@@ -141,42 +141,37 @@
 
         function getNextFullMoon(startDate) {
     let limit = new Date(startDate).getTime();
-    
-    // Wir suchen in der Zukunft, beginnend ab dem startDate
-    // Wir prüfen in 15-Minuten-Schritten über 35 Tage, um nichts zu verpassen
     let checkDate = new Date(startDate);
     
-    let bestDate = null;
-    let maxIllumination = 0;
-    let searchingForPeak = false;
+    // Wir starten die Suche am Anfang des gewählten Tages
+    checkDate.setHours(0, 0, 0, 0); 
+    
+    let lastFraction = SunCalc.getMoonIllumination(checkDate).fraction;
+    let peakFound = false;
+    
+    // Wir suchen über 35 Tage
+    for (let i = 0; i < 35 * 24; i++) {
+        let prevDate = new Date(checkDate);
+        checkDate.setHours(checkDate.getHours() + 1);
+        let currentFraction = SunCalc.getMoonIllumination(checkDate).fraction;
+        
+        // EIN PEAK ist dort, wo die Beleuchtung vorher stieg und jetzt fällt
+        // Wir prüfen die Steigung der letzten zwei Stunden
+        let hourBefore = new Date(prevDate);
+        hourBefore.setHours(hourBefore.getHours() - 1);
+        let beforeFraction = SunCalc.getMoonIllumination(hourBefore).fraction;
 
-    // Wir scannen die nächsten 35 Tage
-    for (let i = 0; i < 35 * 24 * 4; i++) {
-        checkDate.setMinutes(checkDate.getMinutes() + 15);
-        let illumination = SunCalc.getMoonIllumination(checkDate).fraction;
-
-        // Sobald die Beleuchtung sehr hoch ist (>99%), suchen wir den exakten Peak
-        if (illumination > 0.99) {
-            searchingForPeak = true;
-            if (illumination > maxIllumination) {
-                maxIllumination = illumination;
-                bestDate = new Date(checkDate);
+        if (currentFraction < lastFraction && lastFraction > beforeFraction && lastFraction > 0.98) {
+            // Wir haben einen echten Peak gefunden!
+            // Jetzt prüfen: Liegt dieser Peak nach unserer aktuellen Uhrzeit?
+            if (prevDate.getTime() > limit) {
+                return prevDate.toLocaleDateString('de-DE') + ' ' + prevDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
             }
-        } else if (searchingForPeak) {
-            // Die Beleuchtung sinkt wieder -> Peak gefunden!
-            if (bestDate && bestDate.getTime() > limit) {
-                return bestDate.toLocaleDateString('de-DE') + ' ' + 
-                       bestDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
-            }
-            // Falls dieser Peak in der Vergangenheit lag (z.B. am Vormittag des 3.1.), 
-            // setzen wir die Suche für den nächsten Monat fort:
-            searchingForPeak = false;
-            maxIllumination = 0;
         }
+        lastFraction = currentFraction;
     }
     return "";
 }
-
 
 
         function getPlanetRealPos(id, date) {
