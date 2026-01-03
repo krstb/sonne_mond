@@ -59,7 +59,7 @@
 <body class="flex items-start justify-center min-h-screen p-4 pt-8 text-slate-200 font-sans">
 
     <div class="app-container p-6 max-w-sm w-full mx-auto text-center border border-slate-700">
-        <h1 class="text-xl font-black mb-6 text-white tracking-tight">Astronomische Ereignisse Stadtbergen1</h1> 
+        <h1 class="text-xl font-black mb-6 text-white tracking-tight">Astronomische Ereignisse Stadtbergen2</h1> 
 
         <div class="flex space-x-2 mb-6">
             <input type="date" id="date-picker" class="p-2 rounded-xl text-xs w-1/2 outline-none text-white">
@@ -270,25 +270,37 @@
             });
         }
 
-        // Live-Uhrzeit Aktualisierung
-        function tick() {
-            if (isUserEditing || !autoUpdateActive) return;
+        // Ersetze die bestehende tick() Funktion durch diese:
+function tick() {
+    if (isUserEditing || !autoUpdateActive) return;
 
-            const now = new Date();
-            const dateInput = document.getElementById('date-picker');
-            const timeInput = document.getElementById('time-picker');
-            
-            const todayStr = now.toISOString().split('T')[0];
-            const currentTimeStr = now.toTimeString().slice(0,5);
+    const now = new Date();
+    const dateInput = document.getElementById('date-picker');
+    const timeInput = document.getElementById('time-picker');
+    
+    // Lokale ISO-Strings für Datum und Zeit (YYYY-MM-DD und HH:mm)
+    const todayStr = now.toLocaleDateString('en-CA'); // en-CA liefert zuverlässig YYYY-MM-DD
+    const currentTimeStr = now.toTimeString().slice(0,5);
 
-            // Nur aktualisieren, wenn das Datum auf heute steht
-            if (dateInput.value === todayStr) {
-                if (timeInput.value !== currentTimeStr) {
-                    timeInput.value = currentTimeStr;
-                    update();
-                }
-            }
-        }
+    let changed = false;
+
+    // Aktualisiert das Datum im Feld, wenn ein neuer Tag anbricht
+    if (dateInput.value !== todayStr) {
+        dateInput.value = todayStr;
+        changed = true;
+    }
+
+    // Aktualisiert die Uhrzeit im Feld jede Minute
+    if (timeInput.value !== currentTimeStr) {
+        timeInput.value = currentTimeStr;
+        changed = true;
+    }
+
+    if (changed) {
+        update();
+    }
+}
+
 
         // Event Listener für manuelle Eingaben
         const datePicker = document.getElementById('date-picker');
