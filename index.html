@@ -59,7 +59,7 @@
 <body class="flex items-start justify-center min-h-screen p-4 pt-8 text-slate-200 font-sans">
 
     <div class="app-container p-6 max-w-sm w-full mx-auto text-center border border-slate-700">
-        <h1 class="text-xl font-black mb-6 text-white tracking-tight">Astronomische Ereignisse Stadtbergen4</h1> 
+        <h1 class="text-xl font-black mb-6 text-white tracking-tight">Astronomische Ereignisse Stadtbergen5</h1> 
 
         <div class="flex space-x-2 mb-6">
             <input type="date" id="date-picker" class="p-2 rounded-xl text-xs w-1/2 outline-none text-white">
@@ -140,32 +140,40 @@
         }
 
         function getNextFullMoon(startDate) {
-    let limit = new Date(startDate).getTime();
     let checkDate = new Date(startDate);
+    // Konstante für den synodischen Monat (ca. 29.53 Tage)
+    const SYNODIC_MONTH = 29.530588853;
     
-    checkDate.setHours(0, 0, 0, 0); 
-    
-    let lastFraction = SunCalc.getMoonIllumination(checkDate).fraction;
-    
-    for (let i = 0; i < 35 * 24; i++) {
-        let prevDate = new Date(checkDate);
-        checkDate.setHours(checkDate.getHours() + 1);
-        let currentFraction = SunCalc.getMoonIllumination(checkDate).fraction;
+    // Wir suchen in den nächsten 40 Tagen
+    for (let i = 0; i < 40 * 24; i++) {
+        let date = new Date(checkDate.getTime() + i * 3600000);
+        let illumination = SunCalc.getMoonIllumination(date);
         
-        let hourBefore = new Date(prevDate);
-        hourBefore.setHours(hourBefore.getHours() - 1);
-        let beforeFraction = SunCalc.getMoonIllumination(hourBefore).fraction;
-
-        if (currentFraction < lastFraction && lastFraction > beforeFraction && lastFraction > 0.98) {
-            if (prevDate.getTime() > limit) {
-                // HIER werden die 3 Stunden dazugerechnet
-                let resultDate = new Date(prevDate.getTime() + (3 * 60 * 60 * 1000));
-                return resultDate.toLocaleDateString('de-DE') + ' ' + resultDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
-            }
+        // Die Phase geht von -PI bis PI oder 0 bis 1. 
+        // 0.5 (oder 0) ist bei SunCalc der exakte Vollmond-Punkt (Opposition)
+        // Wir suchen den Moment, in dem die Phase am nächsten an 0.5 springt
+        // und die Beleuchtung maximal ist.
+        if (illumination.phase > 0.499 && illumination.phase < 0.501) {
+            // Um den exakten Peak innerhalb dieser Stunde zu finden:
+            return date.toLocaleDateString('de-DE') + ' ' + 
+                   date.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
         }
-        lastFraction = currentFraction;
     }
-    return "";
+    
+    // Falls die 0.5er Schwelle in den Stunden-Schritten verpasst wurde, 
+    // suchen wir den absoluten Maximalwert der Beleuchtung
+    let maxFrac = 0;
+    let bestDate = null;
+    for (let i = 0; i < 32 * 24; i++) {
+        let date = new Date(checkDate.getTime() + i * 3600000);
+        let frac = SunCalc.getMoonIllumination(date).fraction;
+        if (frac > maxFrac) {
+            maxFrac = frac;
+            bestDate = date;
+        }
+    }
+    return bestDate ? bestDate.toLocaleDateString('de-DE') + ' ' + 
+           bestDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}) : "";
 }
 
 
