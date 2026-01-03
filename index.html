@@ -140,18 +140,29 @@
         }
 
         function getNextFullMoon(startDate) {
-            let d = new Date(startDate);
-            let lastFraction = SunCalc.getMoonIllumination(d).fraction;
-            for (let i = 0; i < 31 * 24; i++) {
-                d.setHours(d.getHours() + 1);
-                let currentFraction = SunCalc.getMoonIllumination(d).fraction;
-                if (currentFraction < lastFraction && lastFraction > 0.98) {
-                    return d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
-                }
-                lastFraction = currentFraction;
+    // 1. Die aktuell eingestellte Zeit als Zahl (Millisekunden) speichern
+    let limit = new Date(startDate).getTime();
+    
+    let checkDate = new Date(startDate);
+    // 2. Suche am Anfang des gewählten Tages (00:00 Uhr) starten
+    checkDate.setHours(0, 0, 0, 0); 
+    
+    let lastFraction = SunCalc.getMoonIllumination(checkDate).fraction;
+    
+    for (let i = 0; i < 35 * 24; i++) {
+        checkDate.setHours(checkDate.getHours() + 1);
+        let currentFraction = SunCalc.getMoonIllumination(checkDate).fraction;
+        
+        if (currentFraction < lastFraction && lastFraction > 0.98) {
+            // 3. Präziser Vergleich: Nur anzeigen, wenn das Ereignis NACH dem Limit liegt
+            if (checkDate.getTime() > limit) {
+                return checkDate.toLocaleDateString('de-DE') + ' ' + checkDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
             }
-            return "";
         }
+        lastFraction = currentFraction;
+    }
+    return "";
+}
 
         function getPlanetRealPos(id, date) {
             const d = (date.getTime() / 86400000) - (new Date('2000-01-01T12:00:00Z').getTime() / 86400000);
