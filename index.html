@@ -59,7 +59,7 @@
 <body class="flex items-start justify-center min-h-screen p-4 pt-8 text-slate-200 font-sans">
 
     <div class="app-container p-6 max-w-sm w-full mx-auto text-center border border-slate-700">
-        <h1 class="text-xl font-black mb-6 text-white tracking-tight">Astronomische Ereignisse Stadtbergen</h1> 
+        <h1 class="text-xl font-black mb-6 text-white tracking-tight">Astronomische Ereignisse Stadtbergen1</h1> 
 
         <div class="flex space-x-2 mb-6">
             <input type="date" id="date-picker" class="p-2 rounded-xl text-xs w-1/2 outline-none text-white">
@@ -140,29 +140,39 @@
         }
 
         function getNextFullMoon(startDate) {
-    // 1. Die aktuell eingestellte Zeit als Zahl (Millisekunden) speichern
     let limit = new Date(startDate).getTime();
-    
     let checkDate = new Date(startDate);
-    // 2. Suche am Anfang des gewählten Tages (00:00 Uhr) starten
+    
+    // Wir starten die Suche am Anfang des gewählten Tages
     checkDate.setHours(0, 0, 0, 0); 
     
     let lastFraction = SunCalc.getMoonIllumination(checkDate).fraction;
+    let peakFound = false;
     
+    // Wir suchen über 35 Tage
     for (let i = 0; i < 35 * 24; i++) {
+        let prevDate = new Date(checkDate);
         checkDate.setHours(checkDate.getHours() + 1);
         let currentFraction = SunCalc.getMoonIllumination(checkDate).fraction;
         
-        if (currentFraction < lastFraction && lastFraction > 0.98) {
-            // 3. Präziser Vergleich: Nur anzeigen, wenn das Ereignis NACH dem Limit liegt
-            if (checkDate.getTime() > limit) {
-                return checkDate.toLocaleDateString('de-DE') + ' ' + checkDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+        // EIN PEAK ist dort, wo die Beleuchtung vorher stieg und jetzt fällt
+        // Wir prüfen die Steigung der letzten zwei Stunden
+        let hourBefore = new Date(prevDate);
+        hourBefore.setHours(hourBefore.getHours() - 1);
+        let beforeFraction = SunCalc.getMoonIllumination(hourBefore).fraction;
+
+        if (currentFraction < lastFraction && lastFraction > beforeFraction && lastFraction > 0.98) {
+            // Wir haben einen echten Peak gefunden!
+            // Jetzt prüfen: Liegt dieser Peak nach unserer aktuellen Uhrzeit?
+            if (prevDate.getTime() > limit) {
+                return prevDate.toLocaleDateString('de-DE') + ' ' + prevDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
             }
         }
         lastFraction = currentFraction;
     }
     return "";
 }
+
 
         function getPlanetRealPos(id, date) {
             const d = (date.getTime() / 86400000) - (new Date('2000-01-01T12:00:00Z').getTime() / 86400000);
