@@ -173,34 +173,29 @@
 
         function getNextFullMoon(startDate) {
     let checkDate = new Date(startDate);
-    let bestDate = null;
-    let minDiff = 1;
-
-    // Wir prüfen die nächsten 30 Tage stündlich
-    for (let i = 0; i < 30 * 24; i++) {
+    
+    // Wir suchen in den nächsten 45 Tagen (um sicherzugehen)
+    // Wir suchen den Moment, in dem die Phase von "unter 0.5" auf "über 0.5" springt
+    // oder sich der 0.5 von oben nähert.
+    
+    let lastPhase = SunCalc.getMoonIllumination(checkDate).phase;
+    
+    for (let i = 1; i < 45 * 24; i++) {
         let date = new Date(checkDate.getTime() + i * 3600000);
         let illumination = SunCalc.getMoonIllumination(date);
-        
-        // Differenz zu 0.5 (Vollmond)
-        let diff = Math.abs(illumination.phase - 0.5);
-        
-        if (diff < minDiff) {
-            minDiff = diff;
-            bestDate = date;
-        }
-        
-        // Wenn die Differenz wieder steigt, haben wir das Maximum gefunden
-        if (i > 0 && diff > minDiff) {
-            break; 
-        }
-    }
+        let currentPhase = illumination.phase;
 
-    if (bestDate) {
-        return bestDate.toLocaleDateString('de-DE') + ' ' + 
-               bestDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+        // Vollmond ist genau bei 0.5. 
+        // Wir suchen den Punkt, an dem die Phase den Wert 0.5 kreuzt.
+        if ((lastPhase < 0.5 && currentPhase >= 0.5) || (lastPhase > currentPhase && currentPhase <= 0.5)) {
+            return date.toLocaleDateString('de-DE') + ' ' + 
+                   date.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+        }
+        lastPhase = currentPhase;
     }
-    return "";
+    return "Suche...";
 }
+
 
         function getPlanetRealPos(id, date) {
             const d = (date.getTime() / 86400000) - (new Date('2000-01-01T12:00:00Z').getTime() / 86400000);
