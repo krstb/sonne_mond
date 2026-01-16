@@ -172,16 +172,35 @@
         }
 
         function getNextFullMoon(startDate) {
-            let checkDate = new Date(startDate);
-            for (let i = 0; i < 40 * 24; i++) {
-                let date = new Date(checkDate.getTime() + i * 3600000);
-                let illumination = SunCalc.getMoonIllumination(date);
-                if (illumination.phase > 0.499 && illumination.phase < 0.501) {
-                    return date.toLocaleDateString('de-DE') + ' ' + date.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
-                }
-            }
-            return "";
+    let checkDate = new Date(startDate);
+    let bestDate = null;
+    let minDiff = 1;
+
+    // Wir prüfen die nächsten 30 Tage stündlich
+    for (let i = 0; i < 30 * 24; i++) {
+        let date = new Date(checkDate.getTime() + i * 3600000);
+        let illumination = SunCalc.getMoonIllumination(date);
+        
+        // Differenz zu 0.5 (Vollmond)
+        let diff = Math.abs(illumination.phase - 0.5);
+        
+        if (diff < minDiff) {
+            minDiff = diff;
+            bestDate = date;
         }
+        
+        // Wenn die Differenz wieder steigt, haben wir das Maximum gefunden
+        if (i > 0 && diff > minDiff) {
+            break; 
+        }
+    }
+
+    if (bestDate) {
+        return bestDate.toLocaleDateString('de-DE') + ' ' + 
+               bestDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+    }
+    return "";
+}
 
         function getPlanetRealPos(id, date) {
             const d = (date.getTime() / 86400000) - (new Date('2000-01-01T12:00:00Z').getTime() / 86400000);
