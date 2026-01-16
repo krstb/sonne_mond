@@ -178,6 +178,19 @@
             let isRising = false;
 
             // Wir suchen in den nächsten 32 Tagen stündlich
+                    // Astronomische Berechnungen
+        function getCompass(deg) {
+            const s = ["N", "NNO", "NO", "ONO", "O", "OSO", "SO", "SSO", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+            return s[(Math.floor((deg / 22.5) + 0.5) % 16)];
+        }
+
+        function getNextFullMoon(startDate) {
+            let checkDate = new Date(startDate);
+            let maxFraction = 0;
+            let bestDate = null;
+            let isRising = false;
+
+            // Wir suchen in den nächsten 32 Tagen stündlich
             for (let i = 0; i < 32 * 24; i++) {
                 let date = new Date(checkDate.getTime() + i * 3600000);
                 let illumination = SunCalc.getMoonIllumination(date);
@@ -207,6 +220,9 @@
             }
             return "Berechne...";
         }
+
+    
+
 
 
 
