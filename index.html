@@ -172,27 +172,45 @@
         }
 
         function getNextFullMoon(startDate) {
-    let function getNextFullMoon(startDate) {
     let checkDate = new Date(startDate);
     let maxFraction = 0;
     let bestDate = null;
-    let searching = false;
+    let isRising = false;
 
     // Wir suchen in den nächsten 32 Tagen stündlich
     for (let i = 0; i < 32 * 24; i++) {
         let date = new Date(checkDate.getTime() + i * 3600000);
         let illumination = SunCalc.getMoonIllumination(date);
         
-        // Wir suchen den Berg (Maximum) der Beleuchtung
-        if (illumination.fraction > maxFraction) {
-            maxFraction = illumination.fraction;
-            bestDate = date;
-            searching = true; // Wir haben angefangen, einen "Berg" zu finden
-        } else if (searching && illumination.fraction < maxFraction) {
-            // Sobald die Beleuchtung wieder abnimmt, hatten wir das Maximum
-            break; 
+        // 1. Wir müssen warten, bis die Beleuchtung anfängt zu steigen
+        // (um nicht ein Maximum in der unmittelbaren Vergangenheit zu fangen)
+        if (i > 0) {
+            let prevDate = new Date(date.getTime() - 3600000);
+            let prevIllum = SunCalc.getMoonIllumination(prevDate);
+            if (illumination.fraction > prevIllum.fraction) {
+                isRising = true;
+            }
+        }
+
+        // 2. Wenn sie steigt, suchen wir den höchsten Punkt
+        if (isRising) {
+            if (illumination.fraction > maxFraction) {
+                maxFraction = illumination.fraction;
+                bestDate = date;
+            } else if (maxFraction > 0.98) { 
+                // Sobald die Beleuchtung wieder sinkt UND wir über 98% waren, 
+                // haben wir den Vollmond gefunden.
+                break;
+            }
         }
     }
+
+    if (bestDate) {
+        return bestDate.toLocaleDateString('de-DE') + ' ' + 
+               bestDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+    }
+    return "Berechne...";
+}
 
     if (bestDate) {
         return bestDate.toLocaleDateString('de-DE') + ' ' + 
