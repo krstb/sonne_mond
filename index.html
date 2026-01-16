@@ -165,7 +165,7 @@
             }
         }
 
-                // Astronomische Berechnungen
+        // Astronomische Berechnungen
         function getCompass(deg) {
             const s = ["N", "NNO", "NO", "ONO", "O", "OSO", "SO", "SSO", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
             return s[(Math.floor((deg / 22.5) + 0.5) % 16)];
@@ -173,60 +173,15 @@
 
         function getNextFullMoon(startDate) {
             let checkDate = new Date(startDate);
-            let maxFraction = 0;
-            let bestDate = null;
-            let isRising = false;
-
-            // Wir suchen in den nächsten 32 Tagen stündlich
-                    // Astronomische Berechnungen
-        function getCompass(deg) {
-            const s = ["N", "NNO", "NO", "ONO", "O", "OSO", "SO", "SSO", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-            return s[(Math.floor((deg / 22.5) + 0.5) % 16)];
-        }
-
-        function getNextFullMoon(startDate) {
-            let checkDate = new Date(startDate);
-            let maxFraction = 0;
-            let bestDate = null;
-            let isRising = false;
-
-            // Wir suchen in den nächsten 32 Tagen stündlich
-            for (let i = 0; i < 32 * 24; i++) {
+            for (let i = 0; i < 40 * 24; i++) {
                 let date = new Date(checkDate.getTime() + i * 3600000);
                 let illumination = SunCalc.getMoonIllumination(date);
-                
-                if (i > 0) {
-                    let prevDate = new Date(date.getTime() - 3600000);
-                    let prevIllum = SunCalc.getMoonIllumination(prevDate);
-                    if (illumination.fraction > prevIllum.fraction) {
-                        isRising = true;
-                    }
-                }
-
-                if (isRising) {
-                    if (illumination.fraction > maxFraction) {
-                        maxFraction = illumination.fraction;
-                        bestDate = date;
-                    } else if (maxFraction > 0.98) { 
-                        // Wir haben den Gipfel überschritten
-                        break;
-                    }
+                if (illumination.phase > 0.499 && illumination.phase < 0.501) {
+                    return date.toLocaleDateString('de-DE') + ' ' + date.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
                 }
             }
-
-            if (bestDate) {
-                return bestDate.toLocaleDateString('de-DE') + ' ' + 
-                       bestDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
-            }
-            return "Berechne...";
+            return "";
         }
-
-    
-
-
-
-
-
 
         function getPlanetRealPos(id, date) {
             const d = (date.getTime() / 86400000) - (new Date('2000-01-01T12:00:00Z').getTime() / 86400000);
