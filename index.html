@@ -172,29 +172,35 @@
         }
 
         function getNextFullMoon(startDate) {
+    let function getNextFullMoon(startDate) {
     let checkDate = new Date(startDate);
-    
-    // Wir suchen in den nächsten 45 Tagen (um sicherzugehen)
-    // Wir suchen den Moment, in dem die Phase von "unter 0.5" auf "über 0.5" springt
-    // oder sich der 0.5 von oben nähert.
-    
-    let lastPhase = SunCalc.getMoonIllumination(checkDate).phase;
-    
-    for (let i = 1; i < 45 * 24; i++) {
+    let maxFraction = 0;
+    let bestDate = null;
+    let searching = false;
+
+    // Wir suchen in den nächsten 32 Tagen stündlich
+    for (let i = 0; i < 32 * 24; i++) {
         let date = new Date(checkDate.getTime() + i * 3600000);
         let illumination = SunCalc.getMoonIllumination(date);
-        let currentPhase = illumination.phase;
-
-        // Vollmond ist genau bei 0.5. 
-        // Wir suchen den Punkt, an dem die Phase den Wert 0.5 kreuzt.
-        if ((lastPhase < 0.5 && currentPhase >= 0.5) || (lastPhase > currentPhase && currentPhase <= 0.5)) {
-            return date.toLocaleDateString('de-DE') + ' ' + 
-                   date.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+        
+        // Wir suchen den Berg (Maximum) der Beleuchtung
+        if (illumination.fraction > maxFraction) {
+            maxFraction = illumination.fraction;
+            bestDate = date;
+            searching = true; // Wir haben angefangen, einen "Berg" zu finden
+        } else if (searching && illumination.fraction < maxFraction) {
+            // Sobald die Beleuchtung wieder abnimmt, hatten wir das Maximum
+            break; 
         }
-        lastPhase = currentPhase;
     }
-    return "Suche...";
+
+    if (bestDate) {
+        return bestDate.toLocaleDateString('de-DE') + ' ' + 
+               bestDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+    }
+    return "";
 }
+
 
 
         function getPlanetRealPos(id, date) {
